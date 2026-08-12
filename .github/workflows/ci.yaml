@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+      
+    - name: Set up Go
+      uses: actions/setup-go@v7
+      with:
+        go-version: '1.26'
+        
+    - name: Cache Go modules
+      uses: actions/cache@v6
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+          
+    - name: Download dependencies
+      run: go mod download
+      
+    - name: Run tests with coverage
+      run: go test -cover -v ./...
+      
+    # Separate from the coverage run: -race and -cover instrument the same
+    # binary differently, and the race detector is a gate in its own right.
+    - name: Run tests with the race detector
+      run: make test-race
+
+    - name: Run golangci-lint
+      run: make lint
+
+    # Full gate: package boundaries plus finding severity. archfit's own verdict
+    # stays "pass" while a Critical Balanced-Coupling advisory stands, so
+    # cmd/archfitcheck fails the build on any open Critical or High finding.
+    #
+    # The target installs archfit itself at the version ARCHFIT_VERSION pins, so
+    # CI and a developer's machine gate on the same tool. A second literal here
+    # would be a pin that can drift from the one the Makefile applies.
+    # GitNexus stays a review-only tool and is deliberately not installed.
+    - name: Verify architecture
+      run: make verify-architecture
+
+    - name: Build binary
+      run: make build
+
+  build-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: test
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+    
+    strategy:
+      matrix:
+        os: [linux, darwin, windows]
+        arch: [amd64, arm64]
+        exclude:
+          - os: windows
+            arch: arm64
+            
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+      
+    - name: Set up Go
+      uses: actions/setup-go@v7
+      with:
+        go-version: '1.26'
+        
+    - name: Build for ${{ matrix.os }}/${{ matrix.arch }}
+      env:
+        GOOS: ${{ matrix.os }}
+        GOARCH: ${{ matrix.arch }}
+      run: make build

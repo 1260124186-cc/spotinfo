@@ -1,0 +1,33 @@
+# --- Build output ---
+.bin
+
+# --- Test & coverage ---
+.cover
+coverage.html
+coverage.out
+**/debug
+**/debug.test
+
+# --- Secrets & local env ---
+.env
+
+# --- AI / agent tooling ---
+.claude
+.archfit-cache/
+.codegraph/
+.gitnexus/
+progress*.txt
+.pi/
+.pi-subagents/
+
+# --- Editors & IDEs ---
+.idea
+.vscode
+
+# --- OS files ---
+**/.DS_Store
+
+# --- Misc ---
+.git
+*.bak
+*.tmp

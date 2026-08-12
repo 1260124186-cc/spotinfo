@@ -1,0 +1,211 @@
+version: "2"
+linters:
+  settings:
+    govet:
+      enable:
+        - shadow
+        - fieldalignment
+    gocyclo:
+      min-complexity: 15
+    cyclop:
+      max-complexity: 15
+      package-average: 10.0
+    dupl:
+      threshold: 100
+    goconst:
+      min-len: 2
+      min-occurrences: 2
+    misspell:
+      locale: US
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+      disabled-checks:
+        - dupImport # https://github.com/go-critic/go-critic/issues/845
+        - ifElseChain
+        - octalLiteral
+        - rangeValCopy
+        - unnamedResult
+        - whyNoLint
+        - wrapperFunc
+    funlen:
+      lines: 120
+      statements: 50
+    gocognit:
+      min-complexity: 20
+    lll:
+      line-length: 120
+    varnamelen:
+      min-name-length: 2
+      ignore-names:
+        - err
+        - i
+        - j
+        - k
+        - v
+        - id
+        - ok
+        - db
+    nolintlint:
+      allow-unused: false
+      require-explanation: false
+      require-specific: true
+    exhaustive:
+      default-signifies-exhaustive: true
+    depguard:
+      rules:
+        main:
+          files:
+            - $all
+          allow:
+            - $gostd
+            # One entry for every internal package, deliberately. depguard only
+            # prefix-checks the nearest allow entry in sorted order, so listing
+            # `spotinfo/internal/spot` alongside `spotinfo/internal` silently
+            # denied every package sorting between them (internal/snapshot,
+            # internal/providers). Keep this list free of narrower entries.
+            - spotinfo/internal
+            - github.com/jedib0t/go-pretty/v6
+            - github.com/urfave/cli/v2
+            - github.com/stretchr/testify
+            - github.com/mark3labs/mcp-go
+            - github.com/spf13/cast
+            - github.com/bluele/gcache
+            - golang.org/x/time
+            # HTML tokenizer for the GCP pricing-page parser. The published
+            # pages are the only contracted GCP source, and the standard library
+            # has no HTML parser.
+            - golang.org/x/net/html
+            # Application Default Credentials for the authenticated GCP
+            # preemption-rate lookup. The canonical ADC implementation: it
+            # resolves a gcloud user credential, a service account, a container
+            # role and the GCE metadata server alike, and hand-rolling that
+            # token refresh is not a thing to do by hand. Only the oauth2
+            # client is taken — not google.golang.org/api, whose generated
+            # compute surface is far larger than the one endpoint we call.
+            - golang.org/x/oauth2
+            - github.com/aws/aws-sdk-go-v2
+            - github.com/aws/smithy-go
+            - github.com/jedib0t/go-pretty/v6/table
+            - github.com/jedib0t/go-pretty/v6/text
+    testifylint:
+      enable-all: true
+    tagalign:
+      align: true
+      sort: true
+  # please, do not use `enable-all`: it's deprecated and will be removed soon.
+  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
+  default: none
+  enable:
+    # Essential bug-finding linters
+    - errcheck # Check for unchecked errors
+    - gosec # Security issues
+    - govet # Go vet built-in checks
+    - ineffassign # Ineffective assignments
+    - staticcheck # Comprehensive static analysis
+    - unused # Unused code
+    - errorlint # Error wrapping issues
+    # Code quality and best practices
+    - bodyclose # HTTP response body close check
+    - contextcheck # Context usage patterns
+    - copyloopvar # Loop variable copying issues
+    - cyclop # Cyclomatic complexity
+    - depguard # Import restrictions
+    - dupl # Code duplication
+    - exhaustive # Switch statement exhaustiveness
+    - funlen # Function length
+    - goconst # Repeated strings that could be constants
+    - gocritic # Comprehensive go code critic
+    - gocyclo # Cyclomatic complexity
+    - makezero # Slice initialization
+    - nakedret # Naked returns
+    - nestif # Nested if statements
+    - nilerr # Nil error returns
+    - nilnil # Nil error and value returns
+    # - noctx             # HTTP without context - disabled: too verbose for initialization and error handling code
+    - predeclared # Predeclared identifier shadowing
+    - rowserrcheck # SQL rows.Err() check
+    - sqlclosecheck # SQL close checks
+    - unconvert # Unnecessary conversions
+    - unparam # Unused parameters
+    - wastedassign # Wasted assignments
+    # Performance-related
+    - prealloc # Slice preallocation
+    # Additional best practices (keep important ones)
+    - durationcheck # Duration multiplication
+    - errname # Error naming conventions
+    - interfacebloat # Interface size
+    - maintidx # Maintainability index
+    - mirror # Wrong mirror patterns
+    - mnd # Magic numbers
+    - nilnesserr # Nil check patterns
+    - nosprintfhostport # Sprintf host:port misuse
+    - reassign # Package variable reassignment
+    - forcetypeassert # Type assertion without check
+  # Explicitly disabled linters with reasons
+  # - gochecknoglobals  # Too restrictive for CLI apps that need global flags/config
+  # - gocognit          # Redundant with cyclop
+  # - godox             # TODO comments are fine during development
+  # - goheader          # Not needed for this project
+  # - gomoddirectives   # Too restrictive for development
+  # - gosmopolitan      # Not needed for this project
+  # - forbidigo         # Too restrictive
+  # - iface             # Too opinionated
+  # - inamedparam       # Too verbose
+  # - intrange          # Go 1.22+ feature not always available
+  exclusions:
+    rules:
+      - path: (.+)\.go$
+        text: Using the variable on range scope `tt` in function literal
+      - path: (.+)_test\.go
+        linters:
+          - funlen
+          - gocyclo
+          - cyclop
+          - dupl
+          - lll
+          - varnamelen
+          - exhaustruct
+          - nolintlint
+          - testpackage
+          - wsl
+          - govet
+          - errcheck
+          - goconst
+          - gocritic
+          - staticcheck
+          - unused
+          - gosec
+      - path: mocks_test\.go
+        linters:
+          - stylecheck
+          - revive
+          - golint
+          - staticcheck
+          - unused
+          - deadcode
+          - typecheck
+      - path: cmd/main\.go
+        linters:
+          - exhaustruct
+      - linters:
+          - lll
+        source: '^//go:generate '
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(spotinfo)
+    goimports:
+      local-prefixes:
+        - spotinfo
